@@ -159,53 +159,29 @@ query_ocsp_server:
 
 # common openssl database files
 dest/%/crlnumber:
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	echo 1000 > $@
 	touch $(@D)/.crldirty
 
 dest/%/index.txt:
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)/certs
 	touch $@
 
 dest/%/serial:
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	echo 1000 > $@
 
 dest/%/private/ca.key.pem:
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	openssl genrsa -aes256 -passout pass:${CA_ENCRYPT_PASSWORD} -out $@ 4096
 	chmod 400 $@
 
 # ca files
 dest/%/ca.cnf: base.cnf dest/%/private/ca.key.pem
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	POLICY=policy_strict CA_TYPE=ca DEST_DIR=${PWD}/$(@D) envsubst -i base.cnf -o $@
 
 dest/%/ca.cert.pem: dest/%/private/ca.key.pem dest/%/ca.cnf
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	openssl req -config $(@D)/ca.cnf \
 		-key $< \
@@ -216,27 +192,15 @@ dest/%/ca.cert.pem: dest/%/private/ca.key.pem dest/%/ca.cnf
 
 # ica files
 dest/%/ica.cnf: base.cnf
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	CRL_HOST=${ICA_SUBJ_CN} POLICY=policy_loose CA_TYPE=ica DEST_DIR=${PWD}/$(@D) envsubst -i base.cnf -o $@
 
 dest/%/private/ica.key.pem:
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	openssl genrsa -aes256 -passout pass:${ICA_ENCRYPT_PASSWORD} -out $@ 4096
 	chmod 400 $@
 
 dest/%/ica.csr.pem: dest/%/private/ica.key.pem dest/%/ica.cnf
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	openssl req -config $(@D)/ica.cnf \
 		-new -sha256 \
@@ -246,10 +210,6 @@ dest/%/ica.csr.pem: dest/%/private/ica.key.pem dest/%/ica.cnf
 		-out $@
 
 dest/%/ica.cert.pem: dest/%/ica.csr.pem
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	openssl ca -config dest/${NAMESPACE}/${CA}/ca.cnf \
 		-batch \
@@ -260,19 +220,11 @@ dest/%/ica.cert.pem: dest/%/ica.csr.pem
 	chmod 444 $@
 
 dest/%/ica-chain.cert.pem: dest/${NAMESPACE}/${CA}/ca.cert.pem dest/%/ica.cert.pem
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	cat $^ > $@
 	chmod 444 $@
 
 dest/%/ica.crl.pem: dest/%/.crldirty
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	openssl ca -config dest/${NAMESPACE}/${ICA}/ica.cnf \
 		-passin pass:${ICA_ENCRYPT_PASSWORD} \
@@ -281,27 +233,15 @@ dest/%/ica.crl.pem: dest/%/.crldirty
 
 # server files
 dest/%/server.cnf: base.cnf
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	POLICY=policy_loose CA_TYPE=server DEST_DIR=${PWD}/$(@D) envsubst -i base.cnf -o $@
 
 dest/%/private/server.key.pem:
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	openssl genrsa -aes256 -passout pass:${SERVER_ENCRYPT_PASSWORD} -out $@ 2048
 	chmod 400 $@
 
 dest/%/server.csr.pem: dest/%/private/server.key.pem dest/%/server.cnf
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	openssl req -config $(@D)/server.cnf \
 		-new -sha256 \
@@ -311,10 +251,6 @@ dest/%/server.csr.pem: dest/%/private/server.key.pem dest/%/server.cnf
 		-out $@
 
 dest/%/server.cert.pem: dest/%/server.csr.pem
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	openssl ca -config dest/${NAMESPACE}/${ICA}/ica.cnf \
 		-batch \
@@ -327,37 +263,21 @@ dest/%/server.cert.pem: dest/%/server.csr.pem
 	chmod 444 $@
 
 dest/%/server-chain.cert.pem: dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem dest/%/server.cert.pem
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	cat $^ > $@
 	chmod 444 $@
 
 # usr files
 dest/%/usr.cnf: base.cnf
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	POLICY=policy_loose CA_TYPE=usr DEST_DIR=${PWD}/$(@D) envsubst -i base.cnf -o $@
 
 dest/%/private/usr.key.pem:
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	openssl genrsa -aes256 -passout pass:${USR_ENCRYPT_PASSWORD} -out $@ 2048
 	chmod 400 $@
 
 dest/%/usr.csr.pem: dest/%/private/usr.key.pem dest/%/usr.cnf
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	openssl req -config $(@D)/usr.cnf \
 		-new -sha256 \
@@ -367,10 +287,6 @@ dest/%/usr.csr.pem: dest/%/private/usr.key.pem dest/%/usr.cnf
 		-out $@
 
 dest/%/usr.cert.pem: dest/%/usr.csr.pem
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	openssl ca -config dest/${NAMESPACE}/${ICA}/ica.cnf \
 		-batch \
@@ -381,10 +297,6 @@ dest/%/usr.cert.pem: dest/%/usr.csr.pem
 	chmod 444 $@
 
 dest/%/usr-chain.cert.pem: dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem dest/%/usr.cert.pem
-	@echo "  ======"
-	@echo MAKE $@
-	-ls -l $@ $^
-	@echo ""
 	mkdir -p $(@D)
 	cat $^ > $@
 	chmod 444 $@
