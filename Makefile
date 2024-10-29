@@ -7,68 +7,68 @@ NAMESPACE?=sandbox
 REVOCATION_PUBLISH_STRATEGY?=ocsp # one of { crl, ocsp }
 OCSP_RESPONDER_PORT?=2560
 
-CA?=fakeca
+CA?=trustedroot
 CA_ENCRYPT_PASSWORD?=Password123
 CA_EXPORT_PASSWORD?=Password123
 CA_YEARS?=30
 CA_DAYS?=$(shell echo $$((${CA_YEARS} * 365)))
 CA_SUBJ_C?=US
-CA_SUBJ_ST?=Utah
-CA_SUBJ_L?=Lehi
-CA_SUBJ_O?=Digicert
-CA_SUBJ_OU?=Engineering
-CA_SUBJ_CN?=${CA}.com
-CA_SUBJ_EMAIL?=admin@${CA_SUBJ_CN}
+CA_SUBJ_ST?=California
+CA_SUBJ_L?=San Francisco
+CA_SUBJ_O?=TrustedCert, Inc.
+CA_SUBJ_OU?=Certificate Authority Division
+CA_SUBJ_CN?=TrustedCert Root CA
+CA_SUBJ_EMAIL?=admin@${CA}.com
 
-ICA?=dotrustitco
+ICA?=secureica
 ICA_ENCRYPT_PASSWORD?=Password321
 ICA_YEARS?=15
 ICA_DAYS?=$(shell echo $$((${ICA_YEARS} * 365)))
 ICA_SUBJ_C?=US
-ICA_SUBJ_ST?=Utah
-ICA_SUBJ_L?=Lehi
-ICA_SUBJ_O?=Digicert
-ICA_SUBJ_OU?=Engineering
-ICA_SUBJ_CN?=${ICA}.com
-ICA_SUBJ_EMAIL?=admin@${ICA_SUBJ_CN}
+ICA_SUBJ_ST?=New York
+ICA_SUBJ_L?=New York City
+ICA_SUBJ_O?=SecureTrust, Ltd.
+ICA_SUBJ_OU?=Intermediate Ceritificate Authority Operations
+ICA_SUBJ_CN?=SecureTrust Intermediate CA
+ICA_SUBJ_EMAIL?=admin@${ICA}.com
 
 OCSP?=ocsp
 OCSP_ENCRYPT_PASSWORD?=Ocsp123
 OCSP_EXPORT_PASSWORD?=Ocsp123
 OCSP_YEARS?=2
 OCSP_DAYS?=$(shell echo $$((${SERVER_YEARS} * 365)))
-OCSP_SUBJ_C?=US
-OCSP_SUBJ_ST?=Utah
-OCSP_SUBJ_L?=Lehi
-OCSP_SUBJ_O?=Digicert
-OCSP_SUBJ_OU?=Engineering
-OCSP_SUBJ_CN?=${SERVER}.com
-OCSP_SUBJ_EMAIL?=admin@${SERVER_SUBJ_CN}
+OCSP_SUBJ_C?=${ICA_SUBJ_C}
+OCSP_SUBJ_ST?=${ICA_SUBJ_ST}
+OCSP_SUBJ_L?=${ICA_SUBJ_L}
+OCSP_SUBJ_O?=${ICA_SUBJ_O}
+OCSP_SUBJ_OU?=OCSP Services
+OCSP_SUBJ_CN?=SecureTrust Intermediate OCSP
+OCSP_SUBJ_EMAIL?=revocations@${ICA}.com
 
-SERVER?=example
+SERVER?=cortexa
 SERVER_ENCRYPT_PASSWORD?=Password456
 SERVER_YEARS?=2
 SERVER_DAYS?=$(shell echo $$((${SERVER_YEARS} * 365)))
 SERVER_SUBJ_C?=US
-SERVER_SUBJ_ST?=Utah
-SERVER_SUBJ_L?=Lehi
-SERVER_SUBJ_O?=Digicert
-SERVER_SUBJ_OU?=Engineering
-SERVER_SUBJ_CN?=${SERVER}.com
-SERVER_SUBJ_EMAIL?=admin@${SERVER_SUBJ_CN}
+SERVER_SUBJ_ST?=California
+SERVER_SUBJ_L?=Fremont
+SERVER_SUBJ_O?=Cortexa Solutions, Inc.
+SERVER_SUBJ_OU?=Web Security Services
+SERVER_SUBJ_CN?=www.${SERVER}.com
+SERVER_SUBJ_EMAIL?=admin@${SERVER}.com
 SERVER_QUALIFIED=qualified
 
-USR?=bob
+USR?=mdubois
 USR_ENCRYPT_PASSWORD?=Password654
 USR_YEARS?=2
 USR_DAYS?=$(shell echo $$((${USR_YEARS} * 365)))
-USR_SUBJ_C?=US
-USR_SUBJ_ST?=Utah
-USR_SUBJ_L?=Lehi
-USR_SUBJ_O?=Digicert
-USR_SUBJ_OU?=Engineering
-USR_SUBJ_CN?=${USR}@${SERVER_SUBJ_CN}
-USR_SUBJ_EMAIL?=${USR_SUBJ_CN}
+USR_SUBJ_C?=FR
+USR_SUBJ_ST?=Ile De France
+USR_SUBJ_L?=Paris
+USR_SUBJ_O?=Cortexa Solutions
+USR_SUBJ_OU?=Corporate Access
+USR_SUBJ_CN?=Marie Dubois
+USR_SUBJ_EMAIL?=${USR}@${SERVER_SUBJ_CN}
 
 .PHONY: help ## Show this help.
 help:
@@ -235,7 +235,7 @@ dest/%/ca.cert.pem: dest/%/private/ca.key.pem dest/%/ca.cnf
 # ica files
 dest/%/ica.cnf: template.cnf
 	mkdir -p $(@D)
-	CRL_HOST=${ICA_SUBJ_CN} POLICY=policy_loose CA_TYPE=ica DEST_DIR=${PWD}/$(@D) envsubst -i template.cnf -o $@
+	CRL_HOST=${ICA}.com POLICY=policy_loose CA_TYPE=ica DEST_DIR=${PWD}/$(@D) envsubst -i template.cnf -o $@
 
 dest/%/private/ica.key.pem:
 	mkdir -p $(@D)

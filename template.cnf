@@ -35,8 +35,8 @@ policy            = $POLICY
 # The root CA should only sign intermediate certificates that match.
 # See the POLICY FORMAT section of `man ca`.
 countryName             = match
-stateOrProvinceName     = match
-organizationName        = match
+# stateOrProvinceName     = match
+# organizationName        = match
 organizationalUnitName  = optional
 commonName              = supplied
 emailAddress            = optional
