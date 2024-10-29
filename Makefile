@@ -9,6 +9,7 @@ OCSP_RESPONDER_PORT?=2560
 
 CA?=fakeca
 CA_ENCRYPT_PASSWORD?=Password123
+CA_EXPORT_PASSWORD?=Password123
 CA_YEARS?=30
 CA_DAYS?=$(shell echo $$((${CA_YEARS} * 365)))
 CA_SUBJ_C?=US
@@ -31,6 +32,19 @@ ICA_SUBJ_OU?=Engineering
 ICA_SUBJ_CN?=${ICA}.com
 ICA_SUBJ_EMAIL?=admin@${ICA_SUBJ_CN}
 
+OCSP?=ocsp
+OCSP_ENCRYPT_PASSWORD?=Ocsp123
+OCSP_EXPORT_PASSWORD?=Ocsp123
+OCSP_YEARS?=2
+OCSP_DAYS?=$(shell echo $$((${SERVER_YEARS} * 365)))
+OCSP_SUBJ_C?=US
+OCSP_SUBJ_ST?=Utah
+OCSP_SUBJ_L?=Lehi
+OCSP_SUBJ_O?=Digicert
+OCSP_SUBJ_OU?=Engineering
+OCSP_SUBJ_CN?=${SERVER}.com
+OCSP_SUBJ_EMAIL?=admin@${SERVER_SUBJ_CN}
+
 SERVER?=example
 SERVER_ENCRYPT_PASSWORD?=Password456
 SERVER_YEARS?=2
@@ -42,6 +56,7 @@ SERVER_SUBJ_O?=Digicert
 SERVER_SUBJ_OU?=Engineering
 SERVER_SUBJ_CN?=${SERVER}.com
 SERVER_SUBJ_EMAIL?=admin@${SERVER_SUBJ_CN}
+SERVER_QUALIFIED=qualified
 
 USR?=bob
 USR_ENCRYPT_PASSWORD?=Password654
@@ -71,6 +86,12 @@ ca: \
 	dest/${NAMESPACE}/${CA}/crlnumber \
 	dest/${NAMESPACE}/${CA}/ca.cert.pem
 
+.PHONY: ca_export ## generate pkcs12 file for export.
+ca_export: dest/${NAMESPACE}/${CA}/private/ca.key.p12
+
+.PHONY: ocsp_export ## generate pkcs12 file for export.
+ocsp_export: dest/${NAMESPACE}/${ICA}/${OCSP}/private/ocsp.key.p12
+
 .PHONY: ica ## use ca to sign ica cert and generates its files
 ica: \
 	ca \
@@ -80,6 +101,12 @@ ica: \
 	dest/${NAMESPACE}/${ICA}/ica.cert.pem \
 	dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem \
 	verify_intermediate
+
+.PHONY: ocsp ## use ica to sign ocsp cert and generate private key
+ocsp: \
+	ica \
+	dest/${NAMESPACE}/${ICA}/${OCSP}/ocsp.cert.pem \
+	verify_ocsp
 
 .PHONY: server ## use ica to sign server cert and generate private key
 server: \
@@ -108,6 +135,10 @@ ica_crl: dest/${NAMESPACE}/${ICA}/ica.crl.pem
 .PHONY: verify_intermediate
 verify_intermediate: dest/${NAMESPACE}/${ICA}/ica.cert.pem
 	openssl verify -CAfile dest/${NAMESPACE}/${CA}/ca.cert.pem $<
+
+.PHONY: verify_ocsp ## use openssl to validate the ocsp cert was correctly signed without checking revocation status
+verify_server: dest/${NAMESPACE}/${ICA}/${OCSP}/ocsp.cert.pem
+	openssl verify -CAfile dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem $<
 
 .PHONY: verify_server ## use openssl to validate the server cert was correctly signed without checking revocation status
 verify_server: dest/${NAMESPACE}/${SERVER}/server.cert.pem
@@ -176,10 +207,20 @@ dest/%/private/ca.key.pem:
 	openssl genrsa -aes256 -passout pass:${CA_ENCRYPT_PASSWORD} -out $@ 4096
 	chmod 400 $@
 
+dest/%/private/ca.key.p12: dest/%/private/ca.key.pem dest/%/ca.cert.pem
+	openssl pkcs12 \
+		-export \
+		-in dest/${NAMESPACE}/${CA}/ca.cert.pem \
+		-inkey $< \
+		-out $@ \
+		-passin pass:${CA_ENCRYPT_PASSWORD} \
+		-password pass:${CA_EXPORT_PASSWORD}
+		chmod 400 $@
+
 # ca files
-dest/%/ca.cnf: base.cnf dest/%/private/ca.key.pem
+dest/%/ca.cnf: template.cnf dest/%/private/ca.key.pem
 	mkdir -p $(@D)
-	POLICY=policy_strict CA_TYPE=ca DEST_DIR=${PWD}/$(@D) envsubst -i base.cnf -o $@
+	POLICY=policy_strict CA_TYPE=ca DEST_DIR=${PWD}/$(@D) envsubst -i template.cnf -o $@
 
 dest/%/ca.cert.pem: dest/%/private/ca.key.pem dest/%/ca.cnf
 	mkdir -p $(@D)
@@ -189,11 +230,12 @@ dest/%/ca.cert.pem: dest/%/private/ca.key.pem dest/%/ca.cnf
 		-passin pass:${CA_ENCRYPT_PASSWORD} \
 		-subj "/C=${CA_SUBJ_C}/ST=${CA_SUBJ_ST}/L=${CA_SUBJ_L}/O=${CA_SUBJ_O}/OU=${CA_SUBJ_OU}/CN=${CA_SUBJ_CN}/emailAddress=${CA_SUBJ_EMAIL}" \
 		-out $@
+	chmod 444 $@
 
 # ica files
-dest/%/ica.cnf: base.cnf
+dest/%/ica.cnf: template.cnf
 	mkdir -p $(@D)
-	CRL_HOST=${ICA_SUBJ_CN} POLICY=policy_loose CA_TYPE=ica DEST_DIR=${PWD}/$(@D) envsubst -i base.cnf -o $@
+	CRL_HOST=${ICA_SUBJ_CN} POLICY=policy_loose CA_TYPE=ica DEST_DIR=${PWD}/$(@D) envsubst -i template.cnf -o $@
 
 dest/%/private/ica.key.pem:
 	mkdir -p $(@D)
@@ -232,9 +274,9 @@ dest/%/ica.crl.pem: dest/%/.crldirty
 		-out $@
 
 # server files
-dest/%/server.cnf: base.cnf
+dest/%/server.cnf: template.cnf
 	mkdir -p $(@D)
-	POLICY=policy_loose CA_TYPE=server DEST_DIR=${PWD}/$(@D) envsubst -i base.cnf -o $@
+	POLICY=policy_loose CA_TYPE=server DEST_DIR=${PWD}/$(@D) envsubst -i template.cnf -o $@
 
 dest/%/private/server.key.pem:
 	mkdir -p $(@D)
@@ -257,6 +299,7 @@ dest/%/server.cert.pem: dest/%/server.csr.pem
 		-days ${ICA_DAYS} -notext -md sha256 \
 		-extensions server_cert \
 		-extensions ${REVOCATION_PUBLISH_STRATEGY} \
+		-extensions ${SERVER_QUALIFIED} \
 		-passin pass:${ICA_ENCRYPT_PASSWORD} \
 		-in $(@D)/server.csr.pem \
 		-out $@
@@ -267,10 +310,55 @@ dest/%/server-chain.cert.pem: dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem dest/%
 	cat $^ > $@
 	chmod 444 $@
 
-# usr files
-dest/%/usr.cnf: base.cnf
+# ocsp files
+dest/%/ocsp.cnf: template.cnf
 	mkdir -p $(@D)
-	POLICY=policy_loose CA_TYPE=usr DEST_DIR=${PWD}/$(@D) envsubst -i base.cnf -o $@
+	POLICY=policy_loose CA_TYPE=ocsp DEST_DIR=${PWD}/$(@D) envsubst -i template.cnf -o $@
+
+dest/%/private/ocsp.key.pem:
+	mkdir -p $(@D)
+	openssl genrsa -aes256 -passout pass:${OCSP_ENCRYPT_PASSWORD} -out $@ 2048
+	chmod 400 $@
+
+dest/%/private/ocsp.key.p12: dest/%/private/ocsp.key.pem dest/%/ocsp.cert.pem
+	openssl pkcs12 \
+		-export \
+		-in dest/$*/ocsp.cert.pem \
+		-inkey $< \
+		-out $@ \
+		-passin pass:${OCSP_ENCRYPT_PASSWORD} \
+		-password pass:${OCSP_EXPORT_PASSWORD}
+		chmod 400 $@
+
+dest/%/ocsp.csr.pem: dest/%/private/ocsp.key.pem dest/%/ocsp.cnf
+	mkdir -p $(@D)
+	openssl req -config $(@D)/ocsp.cnf \
+		-new -sha256 \
+		-key $< \
+		-passin pass:${OCSP_ENCRYPT_PASSWORD} \
+		-subj "/C=${OCSP_SUBJ_C}/ST=${OCSP_SUBJ_ST}/L=${OCSP_SUBJ_L}/O=${OCSP_SUBJ_O}/OU=${OCSP_SUBJ_OU}/CN=${OCSP_SUBJ_CN}/emailAddress=${OCSP_SUBJ_EMAIL}" \
+		-out $@
+
+dest/%/ocsp.cert.pem: dest/%/ocsp.csr.pem
+	mkdir -p $(@D)
+	openssl ca -config dest/${NAMESPACE}/${ICA}/ica.cnf \
+		-batch \
+		-days ${ICA_DAYS} -notext -md sha256 \
+		-extensions ocsp_cert \
+		-passin pass:${ICA_ENCRYPT_PASSWORD} \
+		-in $(@D)/ocsp.csr.pem \
+		-out $@
+	chmod 444 $@
+
+dest/%/ocsp-chain.cert.pem: dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem dest/%/ocsp.cert.pem
+	mkdir -p $(@D)
+	cat $^ > $@
+	chmod 444 $@
+
+# usr files
+dest/%/usr.cnf: template.cnf
+	mkdir -p $(@D)
+	POLICY=policy_loose CA_TYPE=usr DEST_DIR=${PWD}/$(@D) envsubst -i template.cnf -o $@
 
 dest/%/private/usr.key.pem:
 	mkdir -p $(@D)
