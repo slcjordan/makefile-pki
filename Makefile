@@ -137,7 +137,7 @@ verify_intermediate: dest/${NAMESPACE}/${ICA}/ica.cert.pem
 	openssl verify -CAfile dest/${NAMESPACE}/${CA}/ca.cert.pem $<
 
 .PHONY: verify_ocsp ## use openssl to validate the ocsp cert was correctly signed without checking revocation status
-verify_server: dest/${NAMESPACE}/${ICA}/${OCSP}/ocsp.cert.pem
+verify_ocsp: dest/${NAMESPACE}/${ICA}/${OCSP}/ocsp.cert.pem
 	openssl verify -CAfile dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem $<
 
 .PHONY: verify_server ## use openssl to validate the server cert was correctly signed without checking revocation status

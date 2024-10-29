@@ -81,15 +81,19 @@ Please follow [best
 practices](https://cheatsheetseries.owasp.org/cheatsheets/Key_Management_Cheat_Sheet.html)
 before attempting to use pki in production.
 
-## Make Commands:
+# Make Commands:
 - `make help`: Show this help.
 - `make clean`: recursively remove all files from the destination namespace.
 - `make ca`: generate files for a ca: openssl db files, private keys, config file, etd...
+- `make ca_export`: generate pkcs12 file for export.
+- `make ocsp_export`: generate pkcs12 file for export.
 - `make ica`: use ca to sign ica cert and generates its files
+- `make ocsp`: use ica to sign ocsp cert and generate private key
 - `make server`: use ica to sign server cert and generate private key
 - `make usr`: use ica to sign user cert and generate private key
 - `make revoke_server`: revoke a server cert
 - `make ica_crl`: generate a new CRL list. revocations don't show up in the CRL until it is manually rerun
+- `make verify_ocsp`: use openssl to validate the ocsp cert was correctly signed without checking revocation status
 - `make verify_server`: use openssl to validate the server cert was correctly signed without checking revocation status
 - `make dump_server`: use openssl to print a text representation of the server cert
 - `make dump_ica_crl`: use openssl to print a text representation of the current crl
