@@ -5,8 +5,7 @@ post](https://jamielinux.com/docs/openssl-certificate-authority/index.html).
 
 ## Prerequisites
 - [make](https://www.gnu.org/software/make/)
-- [openssl](https://www.openssl.org/)
-- [envsubst](https://linux.die.net/man/1/envsubst)
+- [docker](https://www.docker.com/)
 
 ## Example Usage
 

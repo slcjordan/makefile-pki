@@ -4,22 +4,22 @@ default_ca = CA_default
 
 [ CA_default ]
 # Directory and file locations.
-dir               = $DEST_DIR
-ca_type           = $CA_TYPE
-certs             = $$dir/certs
-crl_dir           = $$dir/
-new_certs_dir     = $$dir/certs
-database          = $$dir/index.txt
-serial            = $$dir/serial
-RANDFILE          = $$dir/private/.rand
+dir               = {{dest_dir}}
+ca_type           = {{ca_type}}
+certs             = $dir/certs
+crl_dir           = $dir/
+new_certs_dir     = $dir/certs
+database          = $dir/index.txt
+serial            = $dir/serial
+RANDFILE          = $dir/private/.rand
 
 # The root key and root certificate.
-private_key       = $$dir/private/$$ca_type.key.pem
-certificate       = $$dir/$$ca_type.cert.pem
+private_key       = $dir/private/$ca_type.key.pem
+certificate       = $dir/$ca_type.cert.pem
 
 # For certificate revocation lists.
-crlnumber         = $$dir/crlnumber
-crl               = $$dir/$$ca_type.crl.pem
+crlnumber         = $dir/crlnumber
+crl               = $dir/$ca_type.crl.pem
 default_crl_days  = 30
 
 # SHA-1 is deprecated, so use SHA-2 instead.
@@ -29,7 +29,7 @@ name_opt          = ca_default
 cert_opt          = ca_default
 default_days      = 375
 preserve          = no
-policy            = $POLICY
+policy            = {{policy}}
 
 [ policy_strict ]
 # The root CA should only sign intermediate certificates that match.
