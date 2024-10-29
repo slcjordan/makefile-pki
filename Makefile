@@ -220,7 +220,7 @@ dest/%/private/ca.key.p12: dest/%/private/ca.key.pem dest/%/ca.cert.pem
 # ca files
 dest/%/ca.cnf: template.cnf dest/%/private/ca.key.pem
 	mkdir -p $(@D)
-	POLICY=policy_strict CA_TYPE=ca DEST_DIR=${PWD}/$(@D) envsubst -i template.cnf -o $@
+	cat template.cnf | POLICY=policy_strict CA_TYPE=ca DEST_DIR=${PWD}/$(@D) envsubst > $@
 
 dest/%/ca.cert.pem: dest/%/private/ca.key.pem dest/%/ca.cnf
 	mkdir -p $(@D)
@@ -235,7 +235,7 @@ dest/%/ca.cert.pem: dest/%/private/ca.key.pem dest/%/ca.cnf
 # ica files
 dest/%/ica.cnf: template.cnf
 	mkdir -p $(@D)
-	CRL_HOST=${ICA}.com POLICY=policy_loose CA_TYPE=ica DEST_DIR=${PWD}/$(@D) envsubst -i template.cnf -o $@
+	cat template.cnf | CRL_HOST=${ICA}.com POLICY=policy_loose CA_TYPE=ica DEST_DIR=${PWD}/$(@D) envsubst > $@
 
 dest/%/private/ica.key.pem:
 	mkdir -p $(@D)
@@ -276,7 +276,7 @@ dest/%/ica.crl.pem: dest/%/.crldirty
 # server files
 dest/%/server.cnf: template.cnf
 	mkdir -p $(@D)
-	POLICY=policy_loose CA_TYPE=server DEST_DIR=${PWD}/$(@D) envsubst -i template.cnf -o $@
+	cat template.cnf | POLICY=policy_loose CA_TYPE=server DEST_DIR=${PWD}/$(@D) envsubst > $@
 
 dest/%/private/server.key.pem:
 	mkdir -p $(@D)
@@ -313,7 +313,7 @@ dest/%/server-chain.cert.pem: dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem dest/%
 # ocsp files
 dest/%/ocsp.cnf: template.cnf
 	mkdir -p $(@D)
-	POLICY=policy_loose CA_TYPE=ocsp DEST_DIR=${PWD}/$(@D) envsubst -i template.cnf -o $@
+	cat template.cnf | POLICY=policy_loose CA_TYPE=ocsp DEST_DIR=${PWD}/$(@D) envsubst > $@
 
 dest/%/private/ocsp.key.pem:
 	mkdir -p $(@D)
@@ -358,7 +358,7 @@ dest/%/ocsp-chain.cert.pem: dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem dest/%/o
 # usr files
 dest/%/usr.cnf: template.cnf
 	mkdir -p $(@D)
-	POLICY=policy_loose CA_TYPE=usr DEST_DIR=${PWD}/$(@D) envsubst -i template.cnf -o $@
+	cat template.cnf | POLICY=policy_loose CA_TYPE=usr DEST_DIR=${PWD}/$(@D) envsubst > $@
 
 dest/%/private/usr.key.pem:
 	mkdir -p $(@D)
