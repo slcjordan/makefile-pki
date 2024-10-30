@@ -2,12 +2,12 @@
 # keep all intermediate results
 .SECONDARY:
 
-NAMESPACE?=sandbox
+NAMESPACE?=sandbox-$(shell git rev-parse --abbrev-ref HEAD)
 
 REVOCATION_PUBLISH_STRATEGY?=ocsp # one of { crl, ocsp }
 OCSP_RESPONDER_PORT?=2560
 
-CA?=trustedroot
+CA?=root-trustedcert
 CA_ENCRYPT_PASSWORD?=Password123
 CA_EXPORT_PASSWORD?=Password123
 CA_YEARS?=30
@@ -20,7 +20,7 @@ CA_SUBJ_OU?=Certificate Authority Division
 CA_SUBJ_CN?=TrustedCert Root CA
 CA_SUBJ_EMAIL?=admin@${CA}.com
 
-ICA?=secureica
+ICA?=ica-securetrust
 ICA_ENCRYPT_PASSWORD?=Password321
 ICA_YEARS?=15
 ICA_DAYS?=$(shell echo $$((${ICA_YEARS} * 365)))
@@ -32,7 +32,7 @@ ICA_SUBJ_OU?=Intermediate Ceritificate Authority Operations
 ICA_SUBJ_CN?=SecureTrust Intermediate CA
 ICA_SUBJ_EMAIL?=admin@${ICA}.com
 
-OCSP?=ocsp
+OCSP?=ocsp-${ICA}
 OCSP_ENCRYPT_PASSWORD?=Ocsp123
 OCSP_EXPORT_PASSWORD?=Ocsp123
 OCSP_YEARS?=2
@@ -45,7 +45,7 @@ OCSP_SUBJ_OU?=OCSP Services
 OCSP_SUBJ_CN?=SecureTrust Intermediate OCSP
 OCSP_SUBJ_EMAIL?=revocations@${ICA}.com
 
-SERVER?=cortexa
+SERVER?=server-cortexa
 SERVER_ENCRYPT_PASSWORD?=Password456
 SERVER_YEARS?=2
 SERVER_DAYS?=$(shell echo $$((${SERVER_YEARS} * 365)))
@@ -58,7 +58,7 @@ SERVER_SUBJ_CN?=www.${SERVER}.com
 SERVER_SUBJ_EMAIL?=admin@${SERVER}.com
 SERVER_QUALIFIED=qualified
 
-USR?=mdubois
+USR?=user-mdubois
 USR_ENCRYPT_PASSWORD?=Password654
 USR_YEARS?=2
 USR_DAYS?=$(shell echo $$((${USR_YEARS} * 365)))
@@ -92,7 +92,7 @@ ca: \
 ca_export: dest/${NAMESPACE}/${CA}/private/ca.key.p12
 
 .PHONY: ocsp_export ## generate pkcs12 file for export.
-ocsp_export: dest/${NAMESPACE}/${ICA}/${OCSP}/private/ocsp.key.p12
+ocsp_export: dest/${NAMESPACE}/${OCSP}/private/ocsp.key.p12
 
 .PHONY: ica ## use ca to sign ica cert and generates its files
 ica: \
@@ -107,7 +107,7 @@ ica: \
 .PHONY: ocsp ## use ica to sign ocsp cert and generate private key
 ocsp: \
 	ica \
-	dest/${NAMESPACE}/${ICA}/${OCSP}/ocsp.cert.pem \
+	dest/${NAMESPACE}/${OCSP}/ocsp.cert.pem \
 	verify_ocsp
 
 .PHONY: server ## use ica to sign server cert and generate private key
@@ -151,7 +151,7 @@ verify_intermediate: dest/${NAMESPACE}/${ICA}/ica.cert.pem
 		alpine/openssl:${OPENSSL_VERSION} verify -CAfile dest/${NAMESPACE}/${CA}/ca.cert.pem $<
 
 .PHONY: verify_ocsp ## use openssl to validate the ocsp cert was correctly signed without checking revocation status
-verify_ocsp: dest/${NAMESPACE}/${ICA}/${OCSP}/ocsp.cert.pem
+verify_ocsp: dest/${NAMESPACE}/${OCSP}/ocsp.cert.pem
 	docker run \
 		--interactive \
 		--tty \
@@ -301,7 +301,7 @@ dest/%/private/ca.key.p12: dest/%/private/ca.key.pem dest/%/ca.cert.pem
 			-out $@ \
 			-passin pass:${CA_ENCRYPT_PASSWORD} \
 			-password pass:${CA_EXPORT_PASSWORD}
-			chmod 400 $@
+	chmod 400 $@
 
 # ca files
 dest/%/ca.cnf: template.cnf dest/%/private/ca.key.pem
@@ -498,7 +498,7 @@ dest/%/private/ocsp.key.p12: dest/%/private/ocsp.key.pem dest/%/ocsp.cert.pem
 			-out $@ \
 			-passin pass:${OCSP_ENCRYPT_PASSWORD} \
 			-password pass:${OCSP_EXPORT_PASSWORD}
-		chmod 400 $@
+	chmod 400 $@
 
 dest/%/ocsp.csr.pem: dest/%/private/ocsp.key.pem dest/%/ocsp.cnf
 	mkdir -p $(@D)
