@@ -2,7 +2,7 @@
 # keep all intermediate results
 .SECONDARY:
 
-NAMESPACE?=sandbox-$(shell git rev-parse --abbrev-ref HEAD)
+NAMESPACE?=branch-$(shell git rev-parse --abbrev-ref HEAD)
 
 REVOCATION_PUBLISH_STRATEGY?=ocsp # one of { crl, ocsp }
 OCSP_RESPONDER_PORT?=2560
