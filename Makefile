@@ -2,10 +2,11 @@
 # keep all intermediate results
 .SECONDARY:
 
-NAMESPACE?=branch-$(shell git rev-parse --abbrev-ref HEAD)
+#
+# overrideable by envvars.
+#
 
-REVOCATION_PUBLISH_STRATEGY?=ocsp # one of { crl, ocsp }
-OCSP_RESPONDER_PORT?=2560
+NAMESPACE?=branch-$(shell git rev-parse --abbrev-ref HEAD)
 
 CA?=root-trustedcert
 CA_ENCRYPT_PASSWORD?=Password123
@@ -71,6 +72,14 @@ USR_SUBJ_CN?=Marie Dubois
 USR_SUBJ_EMAIL?=${USR}@${SERVER_SUBJ_CN}
 
 OPENSSL_VERSION?=3.1.4
+
+# ocsp vars
+REVOCATION_PUBLISH_STRATEGY?=ocsp # one of { crl, ocsp }
+OCSP_RESPONDER_PORT?=2560
+RANDOM_PORT:=$(shell shuf -i 1024-65535 -n 1)
+OCSP_HOST?=${NAMESPACE}-${ICA}-ocsp
+NETWORK?=makefile-pki
+OCSP_PORT_MAPPING?=$(strip $(shell docker container inspect --format='{{(index (index .NetworkSettings.Ports "${OCSP_RESPONDER_PORT}/tcp") 0).HostPort}}' ${OCSP_HOST} 2>/dev/null || echo "${RANDOM_PORT}"))
 
 .PHONY: help ## Show this help.
 help:
@@ -231,13 +240,16 @@ dump_ica_crl:
 		openssl crl -in dest/${NAMESPACE}/${ICA}/ica.crl.pem -noout -text
 
 .PHONY: serve_ica_ocsp ## use openssl to run a non-production ocsp responder for the ica
-serve_ica_ocsp:
+serve_ica_ocsp: ocsp-network
 	docker run \
+		--name "${OCSP_HOST}" \
 		--interactive \
 		--tty \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
+		--network '${NETWORK}' \
+		--publish ${OCSP_PORT_MAPPING}:${OCSP_RESPONDER_PORT} \
 		alpine/openssl:${OPENSSL_VERSION} ocsp \
 			-CApath dest/${NAMESPACE}/${ICA}/certs \
 			-index dest/${NAMESPACE}/${ICA}/index.txt \
@@ -249,18 +261,25 @@ serve_ica_ocsp:
 			-text
 
 .PHONY: query_ocsp_server ## use openssl to query the ocsp status of the server cert
-query_ocsp_server:
+query_ocsp_server: ocsp-network
 	docker run \
 		--interactive \
 		--tty \
 		--rm \
+		--network '${NETWORK}' \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
 		alpine/openssl:${OPENSSL_VERSION} ocsp \
 			-CAfile dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem \
-			-url http://127.0.0.1:${OCSP_RESPONDER_PORT} -resp_text \
+			-url http://${OCSP_HOST}:${OCSP_RESPONDER_PORT} -resp_text \
 			-issuer dest/${NAMESPACE}/${ICA}/ica.cert.pem \
 			-cert dest/${NAMESPACE}/${SERVER}/server.cert.pem
+
+.PHONY: ocsp-network
+ocsp-network:
+	docker network inspect \
+		--format 'docker network ${NETWORK} was created on {{.Created}}' \
+		${NETWORK} || docker network create ${NETWORK}
 
 # common openssl database files
 dest/%/crlnumber:
