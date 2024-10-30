@@ -29,12 +29,12 @@ use ica to sign server cert for example.com
 CA=myca ICA=dotrustitco SERVER=example.com make server
 ```
 
-setting a NAMESPACE environment variable (default `NAMESPACE=sandbox`)
+setting a NAMESPACE environment variable (default `NAMESPACE=branch-$(shell git rev-parse --abbrev-ref HEAD)`)
 builds all files under a common output directory
 ```bash
 dest
-└── sandbox
-    ├── dotrustitco
+└── branch-main
+    ├── ica-securetrust
     │   ├── certs
     │   │   └── 1000.pem
     │   ├── crlnumber
@@ -49,27 +49,27 @@ dest
     │   │   └── ica.key.pem
     │   ├── serial
     │   └── serial.old
-    ├── example.com
+    ├── root-trustedcert
+    │   ├── ca.cert.pem
+    │   ├── ca.cnf
+    │   ├── certs
+    │   │   └── 1000.pem
+    │   ├── crlnumber
+    │   ├── index.txt
+    │   ├── index.txt.attr
+    │   ├── index.txt.old
     │   ├── private
-    │   │   └── server.key.pem
-    │   ├── server.cert.pem
-    │   ├── server.cnf
-    │   └── server.csr.pem
-    └── myca
-        ├── ca.cert.pem
-        ├── ca.cnf
-        ├── certs
-        │   └── 1000.pem
-        ├── crlnumber
-        ├── index.txt
-        ├── index.txt.attr
-        ├── index.txt.old
+    │   │   └── ca.key.pem
+    │   ├── serial
+    │   └── serial.old
+    └── server-cortexa
         ├── private
-        │   └── ca.key.pem
-        ├── serial
-        └── serial.old
+        │   └── server.key.pem
+        ├── server.cert.pem
+        ├── server.cnf
+        └── server.csr.pem
 
-9 directories, 26 files
+10 directories, 26 files
 ```
 
 ## How secure is it?
