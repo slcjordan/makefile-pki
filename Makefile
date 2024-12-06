@@ -2,11 +2,14 @@
 # keep all intermediate results
 .SECONDARY:
 
+SHELL=bash
+
 #
 # overrideable by envvars.
 #
 
 NAMESPACE?=branch-$(shell git rev-parse --abbrev-ref HEAD)
+EXTRA_DOCKER_FLAGS?=--interactive # --tty
 
 CA?=root-trustedcert
 CA_ENCRYPT_PASSWORD?=Password123
@@ -133,9 +136,7 @@ usr: \
 
 .PHONY: revoke_server ## revoke a server cert
 revoke_server:
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -151,9 +152,7 @@ ica_crl: dest/${NAMESPACE}/${ICA}/ica.crl.pem
 
 .PHONY: verify_intermediate
 verify_intermediate: dest/${NAMESPACE}/${ICA}/ica.cert.pem
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -161,9 +160,7 @@ verify_intermediate: dest/${NAMESPACE}/${ICA}/ica.cert.pem
 
 .PHONY: verify_ocsp ## use openssl to validate the ocsp cert was correctly signed without checking revocation status
 verify_ocsp: dest/${NAMESPACE}/${OCSP}/ocsp.cert.pem
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -171,9 +168,7 @@ verify_ocsp: dest/${NAMESPACE}/${OCSP}/ocsp.cert.pem
 
 .PHONY: verify_server ## use openssl to validate the server cert was correctly signed without checking revocation status
 verify_server: dest/${NAMESPACE}/${SERVER}/server.cert.pem
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -181,9 +176,7 @@ verify_server: dest/${NAMESPACE}/${SERVER}/server.cert.pem
 
 .PHONY: verify_usr
 verify_usr: dest/${NAMESPACE}/${USR}/usr.cert.pem
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -191,9 +184,7 @@ verify_usr: dest/${NAMESPACE}/${USR}/usr.cert.pem
 
 .PHONY: dump_ca
 dump_ca:
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -201,9 +192,7 @@ dump_ca:
 
 .PHONY: dump_ica
 dump_ica:
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -211,9 +200,7 @@ dump_ica:
 
 .PHONY: dump_server ## use openssl to print a text representation of the server cert
 dump_server:
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -221,9 +208,7 @@ dump_server:
 
 .PHONY: dump_usr
 dump_usr:
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -231,9 +216,7 @@ dump_usr:
 
 .PHONY: dump_ica_crl ## use openssl to print a text representation of the current crl
 dump_ica_crl:
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -241,10 +224,8 @@ dump_ica_crl:
 
 .PHONY: serve_ica_ocsp ## use openssl to run a non-production ocsp responder for the ica
 serve_ica_ocsp: ocsp-network
-	docker run \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--name "${OCSP_HOST}" \
-		--interactive \
-		--tty \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -262,9 +243,7 @@ serve_ica_ocsp: ocsp-network
 
 .PHONY: query_ocsp_server ## use openssl to query the ocsp status of the server cert
 query_ocsp_server: ocsp-network
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--network '${NETWORK}' \
 		--volume "${PWD}":"${PWD}" \
@@ -297,9 +276,7 @@ dest/%/serial:
 
 dest/%/private/ca.key.pem:
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -307,9 +284,7 @@ dest/%/private/ca.key.pem:
 	chmod 400 $@
 
 dest/%/private/ca.key.p12: dest/%/private/ca.key.pem dest/%/ca.cert.pem
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -326,8 +301,7 @@ dest/%/private/ca.key.p12: dest/%/private/ca.key.pem dest/%/ca.cert.pem
 dest/%/ca.cnf: template.cnf dest/%/private/ca.key.pem
 	mkdir -p $(@D)
 	echo '{"policy": "policy_strict", "ca_type": "ca", "dest_dir": "${PWD}/$(@D)"}' | \
-	docker run \
-		--interactive \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -335,9 +309,7 @@ dest/%/ca.cnf: template.cnf dest/%/private/ca.key.pem
 
 dest/%/ca.cert.pem: dest/%/private/ca.key.pem dest/%/ca.cnf
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -353,8 +325,7 @@ dest/%/ca.cert.pem: dest/%/private/ca.key.pem dest/%/ca.cnf
 dest/%/ica.cnf: template.cnf
 	mkdir -p $(@D)
 	echo '{"policy": "policy_loose", "ca_type": "ica", "dest_dir": "${PWD}/$(@D)"}' | \
-	docker run \
-		--interactive \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -362,9 +333,7 @@ dest/%/ica.cnf: template.cnf
 
 dest/%/private/ica.key.pem:
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -373,9 +342,7 @@ dest/%/private/ica.key.pem:
 
 dest/%/ica.csr.pem: dest/%/private/ica.key.pem dest/%/ica.cnf
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -388,9 +355,7 @@ dest/%/ica.csr.pem: dest/%/private/ica.key.pem dest/%/ica.cnf
 
 dest/%/ica.cert.pem: dest/%/ica.csr.pem
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -409,9 +374,7 @@ dest/%/ica-chain.cert.pem: dest/${NAMESPACE}/${CA}/ca.cert.pem dest/%/ica.cert.p
 
 dest/%/ica.crl.pem: dest/%/.crldirty
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -424,8 +387,7 @@ dest/%/ica.crl.pem: dest/%/.crldirty
 dest/%/server.cnf: template.cnf
 	mkdir -p $(@D)
 	echo '{"policy": "policy_loose", "ca_type": "server", "dest_dir": "${PWD}/$(@D)"}' | \
-	docker run \
-		--interactive \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -433,9 +395,7 @@ dest/%/server.cnf: template.cnf
 
 dest/%/private/server.key.pem:
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -444,9 +404,7 @@ dest/%/private/server.key.pem:
 
 dest/%/server.csr.pem: dest/%/private/server.key.pem dest/%/server.cnf
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -459,9 +417,7 @@ dest/%/server.csr.pem: dest/%/private/server.key.pem dest/%/server.cnf
 
 dest/%/server.cert.pem: dest/%/server.csr.pem
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -485,8 +441,7 @@ dest/%/server-chain.cert.pem: dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem dest/%
 dest/%/ocsp.cnf: template.cnf
 	mkdir -p $(@D)
 	echo '{"policy": "policy_loose", "ca_type": "ocsp", "dest_dir": "${PWD}/$(@D)"}' | \
-	docker run \
-		--interactive \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -494,9 +449,7 @@ dest/%/ocsp.cnf: template.cnf
 
 dest/%/private/ocsp.key.pem:
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -504,9 +457,7 @@ dest/%/private/ocsp.key.pem:
 	chmod 400 $@
 
 dest/%/private/ocsp.key.p12: dest/%/private/ocsp.key.pem dest/%/ocsp.cert.pem
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -521,9 +472,7 @@ dest/%/private/ocsp.key.p12: dest/%/private/ocsp.key.pem dest/%/ocsp.cert.pem
 
 dest/%/ocsp.csr.pem: dest/%/private/ocsp.key.pem dest/%/ocsp.cnf
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -537,9 +486,7 @@ dest/%/ocsp.csr.pem: dest/%/private/ocsp.key.pem dest/%/ocsp.cnf
 
 dest/%/ocsp.cert.pem: dest/%/ocsp.csr.pem
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -562,8 +509,7 @@ dest/%/ocsp-chain.cert.pem: dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem dest/%/o
 dest/%/usr.cnf: template.cnf
 	mkdir -p $(@D)
 	echo '{"policy": "policy_loose", "ca_type": "usr", "dest_dir": "${PWD}/$(@D)"}' | \
-	docker run \
-		--interactive \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -571,9 +517,7 @@ dest/%/usr.cnf: template.cnf
 
 dest/%/private/usr.key.pem:
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -582,9 +526,7 @@ dest/%/private/usr.key.pem:
 
 dest/%/usr.csr.pem: dest/%/private/usr.key.pem dest/%/usr.cnf
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -598,9 +540,7 @@ dest/%/usr.csr.pem: dest/%/private/usr.key.pem dest/%/usr.cnf
 
 dest/%/usr.cert.pem: dest/%/usr.csr.pem
 	mkdir -p $(@D)
-	docker run \
-		--interactive \
-		--tty \
+	docker run ${EXTRA_DOCKER_FLAGS} \
 		--rm \
 		--volume "${PWD}":"${PWD}" \
 		--workdir "${PWD}" \
@@ -617,3 +557,4 @@ dest/%/usr-chain.cert.pem: dest/${NAMESPACE}/${ICA}/ica-chain.cert.pem dest/%/us
 	mkdir -p $(@D)
 	cat $^ > $@
 	chmod 444 $@
+
